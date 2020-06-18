@@ -13,24 +13,25 @@ class TransactionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        height: 450,
         child: _userTransactions.isEmpty
-            ? Column(
-                children: <Widget>[
-                  Text('No transactions added yet!',
-                      style: Theme.of(context).textTheme.headline6),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  Container(
-                    height: 200,
-                    child: Image.asset(
-                      'assests\\images\\waiting.png',
-                      fit: BoxFit.cover,
+            ? LayoutBuilder(builder: (ctx, constraints) {
+                return Column(
+                  children: <Widget>[
+                    Text('No transactions added yet!',
+                        style: Theme.of(context).textTheme.headline6),
+                    SizedBox(
+                      height: 20,
                     ),
-                  )
-                ],
-              )
+                    Container(
+                      height: constraints.maxHeight * .6,
+                      child: Image.asset(
+                        'assests\\images\\waiting.png',
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  ],
+                );
+              })
             : ListView.builder(
                 itemBuilder: (context, index) {
                   final transaction = _userTransactions[index];
@@ -52,11 +53,19 @@ class TransactionList extends StatelessWidget {
                       ),
                       subtitle:
                           Text(DateFormat.yMMMd().format(transaction.date)),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete),
-                        color: Theme.of(context).errorColor,
-                        onPressed: () => _deleteTransaction(transaction.id),
-                      ),
+                      trailing: MediaQuery.of(context).size.width > 400
+                          ? FlatButton.icon(
+                              label: Text('Delete'),
+                              icon: Icon(Icons.delete),
+                              textColor: Theme.of(context).errorColor,
+                              onPressed: () =>
+                                  _deleteTransaction(transaction.id))
+                          : IconButton(
+                              icon: Icon(Icons.delete),
+                              color: Theme.of(context).errorColor,
+                              onPressed: () =>
+                                  _deleteTransaction(transaction.id),
+                            ),
                     ),
                   );
                 },
