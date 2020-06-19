@@ -49,7 +49,7 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   final List<Transaction> _userTransactions = [
     //   Transaction(
     //       id: 't1', title: 'New Shoes', amount: 69.99, date: DateTime.now()),
@@ -98,6 +98,66 @@ class _MyHomePageState extends State<MyHomePage> {
         .toList();
   }
 
+  List<Widget> _buildLandscapeContent(MediaQueryData mediaQuery,
+      PreferredSizeWidget appBar, Widget txListWidget) {
+    return [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'Show Chart',
+            style: Theme.of(context).textTheme.headline6,
+          ),
+          Switch.adaptive(
+              activeColor: Theme.of(context).accentColor,
+              value: _showChart,
+              onChanged: (val) {
+                setState(() {
+                  _showChart = val;
+                });
+              })
+        ],
+      ),
+      _showChart
+          ? Container(
+              height: mediaQuery.size.height * .7 -
+                  mediaQuery.padding.top -
+                  appBar.preferredSize.height,
+              child: Chart(_recentTransactions))
+          : txListWidget
+    ];
+  }
+
+  List<Widget> _buildPortaitContent(MediaQueryData mediaQuery,
+      PreferredSizeWidget appBar, Widget txListWidget) {
+    return [
+      Container(
+          height: mediaQuery.size.height * .3 -
+              mediaQuery.padding.top -
+              appBar.preferredSize.height,
+          child: Chart(_recentTransactions)),
+      txListWidget
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    print(state);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -106,7 +166,47 @@ class _MyHomePageState extends State<MyHomePage> {
       'Personal Expenses',
       style: TextStyle(fontFamily: 'OpenSans'),
     );
-    final PreferredSizeWidget appBar = Platform.isIOS
+    final PreferredSizeWidget appBar = _buildAppBar(title, context);
+    var txListWidget = Container(
+        height: mediaQuery.size.height * .7 -
+            mediaQuery.padding.top -
+            appBar.preferredSize.height,
+        child: TransactionList(_userTransactions, _deleteTransaction));
+    var pageBody = SafeArea(
+        child: SingleChildScrollView(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        if (isLandscape)
+          ..._buildLandscapeContent(
+            mediaQuery,
+            appBar,
+            txListWidget,
+          ),
+        if (!isLandscape)
+          ..._buildPortaitContent(
+            mediaQuery,
+            appBar,
+            txListWidget,
+          ),
+      ]),
+    ));
+    return Platform.isIOS
+        ? CupertinoPageScaffold(child: pageBody, navigationBar: appBar)
+        : Scaffold(
+            appBar: appBar,
+            body: pageBody,
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerFloat,
+            floatingActionButton: Platform.isIOS
+                ? Container()
+                : FloatingActionButton(
+                    child: Icon(Icons.add),
+                    onPressed: () => _startAddNewTransaction(context),
+                  ),
+          );
+  }
+
+  Widget _buildAppBar(Text title, BuildContext context) {
+    return Platform.isIOS
         ? CupertinoNavigationBar(
             middle: title,
             trailing: Row(
@@ -127,62 +227,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () => _startAddNewTransaction(context),
               )
             ],
-          );
-    var txListWidget = Container(
-        height: mediaQuery.size.height * .7 -
-            mediaQuery.padding.top -
-            appBar.preferredSize.height,
-        child: TransactionList(_userTransactions, _deleteTransaction));
-    var pageBody = SafeArea(
-        child: SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        if (isLandscape)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                'Show Chart',
-                style: Theme.of(context).textTheme.headline6,
-              ),
-              Switch.adaptive(
-                  activeColor: Theme.of(context).accentColor,
-                  value: _showChart,
-                  onChanged: (val) {
-                    setState(() {
-                      _showChart = val;
-                    });
-                  })
-            ],
-          ),
-        if (!isLandscape)
-          Container(
-              height: mediaQuery.size.height * .3 -
-                  mediaQuery.padding.top -
-                  appBar.preferredSize.height,
-              child: Chart(_recentTransactions)),
-        if (!isLandscape) txListWidget,
-        _showChart
-            ? Container(
-                height: mediaQuery.size.height * .7 -
-                    mediaQuery.padding.top -
-                    appBar.preferredSize.height,
-                child: Chart(_recentTransactions))
-            : txListWidget,
-      ]),
-    ));
-    return Platform.isIOS
-        ? CupertinoPageScaffold(child: pageBody, navigationBar: appBar)
-        : Scaffold(
-            appBar: appBar,
-            body: pageBody,
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.centerFloat,
-            floatingActionButton: Platform.isIOS
-                ? Container()
-                : FloatingActionButton(
-                    child: Icon(Icons.add),
-                    onPressed: () => _startAddNewTransaction(context),
-                  ),
           );
   }
 }
